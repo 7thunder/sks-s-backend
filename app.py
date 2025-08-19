@@ -1,11 +1,10 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
-from werkzeug.security import generate_password_hash, check_password_hash
 import os
 
 app = Flask(__name__)
 
-# Database config (Railway/Neon will inject DATABASE_URL)
+# Database config (Railway / Neon)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -18,7 +17,7 @@ ROLE_PERCENTAGES = {
     "SENIOR MECH": 0.50
 }
 
-# User (for login/admin)
+# Admin model
 class Admin(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
@@ -36,21 +35,19 @@ class Earning(db.Model):
     member_id = db.Column(db.Integer, db.ForeignKey('member.id'), nullable=False)
     amount = db.Column(db.Float, nullable=False)
 
+# ---------- ROUTES ----------
 
-# ✅ Init admin route
-@app.route('/init-admin', methods=['GET'])
+@app.route('/init-admin')
 def init_admin():
     # check if admin exists
-    existing = Admin.query.filter_by(username="sks_mechanics").first()
-    if existing:
+    admin = Admin.query.filter_by(username="sks_mechanics").first()
+    if admin:
         return "Admin already exists"
 
-    hashed_pw = generate_password_hash("sks@1188")
-    admin = Admin(username="sks_mechanics", password=hashed_pw)
-    db.session.add(admin)
+    new_admin = Admin(username="sks_mechanics", password="sks@1188")
+    db.session.add(new_admin)
     db.session.commit()
     return "Admin created successfully"
-
 
 @app.route("/add-member", methods=["POST"])
 def add_member():
@@ -60,7 +57,6 @@ def add_member():
     db.session.commit()
     return jsonify({"message": "Member added"})
 
-
 @app.route("/add-earning", methods=["POST"])
 def add_earning():
     data = request.json
@@ -68,7 +64,6 @@ def add_earning():
     db.session.add(earning)
     db.session.commit()
     return jsonify({"message": "Earning added"})
-
 
 @app.route("/calculate-salary/<int:member_id>", methods=["GET"])
 def calculate_salary(member_id):
@@ -86,8 +81,8 @@ def calculate_salary(member_id):
         "salary": salary
     })
 
-
 if __name__ == "__main__":
+    # important: Railway runs gunicorn in production
     with app.app_context():
-        db.create_all()  # ✅ makes sure tables are created
+        db.create_all()
     app.run(debug=True)
