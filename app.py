@@ -37,17 +37,20 @@ class Earning(db.Model):
 
 # ---------- ROUTES ----------
 
-@app.route('/init-admin')
+@app.route('/init-admin', methods=['GET'])
 def init_admin():
-    # check if admin exists
-    admin = Admin.query.filter_by(username="sks_mechanics").first()
-    if admin:
+    # check if admin already exists
+    existing = Admin.query.filter_by(username="sks_mechanics").first()
+    if existing:
         return "Admin already exists"
 
-    new_admin = Admin(username="sks_mechanics", password="sks@1188")
-    db.session.add(new_admin)
+    # create admin with hashed password
+    hashed_password = generate_password_hash("sks@1188")
+    admin = Admin(username="sks_mechanics", password=hashed_password)
+    db.session.add(admin)
     db.session.commit()
     return "Admin created successfully"
+
 
 @app.route("/add-member", methods=["POST"])
 def add_member():
